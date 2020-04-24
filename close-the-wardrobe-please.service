@@ -1,0 +1,11 @@
+# Contents of /etc/systemd/system/close-the-wardrobe-please.service
+[Unit]
+Description=Close the Wardrobe Please is a daemon that will notify if the light sensor receive light
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/opt/sensors/bin/close-the-wardrobe-please
+
+[Install]
+WantedBy=multi-user.target
