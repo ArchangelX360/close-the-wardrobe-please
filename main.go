@@ -9,46 +9,37 @@ import (
 	"time"
 )
 
-const (
-	chipName                = "gpiochip0"
-	lightSensorPin          = rpi.GPIO23
-	buzzerPin               = rpi.GPIO24
-	delayBeforeNotification = 5 * time.Second
-)
-
 var (
 	debugLogger = log.New(os.Stdout, "[DEBUG  ] ", log.LstdFlags)
 	infoLogger  = log.New(os.Stdout, "[INFO   ] ", log.LstdFlags)
 	errorLogger = log.New(os.Stderr, "[ERROR  ] ", log.LstdFlags)
 )
 
+const (
+	chipName = "gpiochip0"
+)
+
+var (
+	delayBeforeNotification = flag.Duration("notification-delay", 5*time.Second, "delay between the moment the light is detected and the notification is sent")
+	lightSensorPin          = flag.Int("light-sensor-pin", rpi.GPIO23, "GPIO pin number on which the light sensor is plugged")
+	buzzerPin               = flag.Int("buzzer-pin", rpi.GPIO24, "GPIO pin number on which the buzzer is plugged")
+)
+
 func main() {
 	flag.Parse()
 
-	infoLogger.Printf("Binding chip %q...", chipName)
 	c, err := gpiod.NewChip(chipName)
 	if err != nil {
-		errorLogger.Fatalf("\nfailed to bind chip %q: %v", chipName, err)
+		errorLogger.Fatalf("failed to bind chip %q: %v", chipName, err)
 	}
-	defer c.Close()
 
-	infoLogger.Printf("Requesting buzzer on line %q...", buzzerPin)
-	buzzer, err := c.RequestLine(buzzerPin, gpiod.AsOutput(1))
+	n := NewNotifier(c, *buzzerPin)
+
+	lightSensor, err := c.RequestLine(*lightSensorPin)
 	if err != nil {
-		errorLogger.Fatalf("\nfailed to request line %q: %v", buzzerPin, err)
+		errorLogger.Fatalf("failed to request line %d: %v", lightSensorPin, err)
 	}
-	defer buzzer.Close()
-	buzzer.SetValue(0)
 
-	infoLogger.Printf("Requesting light sensor on line %q...", lightSensorPin)
-	lightSensor, err := c.RequestLine(lightSensorPin)
-	if err != nil {
-		errorLogger.Fatalf("\nfailed to request line %q: %v", lightSensorPin, err)
-	}
-	defer lightSensor.Close()
-
-	deny := make(chan struct{}, 1)
-	notifying := false
 	for {
 		v, err := lightSensor.Value()
 		lightOn := v == 0
@@ -57,38 +48,15 @@ func main() {
 		} else {
 			if lightOn {
 				debugLogger.Println("\u263c")
-				if !notifying {
-					emptyChannel(deny)
-					infoLogger.Printf("Preparing to send notification...\n")
-					notifying = true
-					go fireNotificationIn(delayBeforeNotification, &deny, &notifying, buzzer)
+				if !n.isNotifying {
+					n.Prepare()
+					go n.fireNotificationIn(*delayBeforeNotification)
 				}
 			} else {
-				buzzer.SetValue(0)
 				debugLogger.Println("\u263e")
-				if len(deny) == 0 {
-					deny <- struct{}{}
-				}
+				n.FireCancellation()
 			}
 		}
 		time.Sleep(1 * time.Second)
-	}
-}
-
-func emptyChannel(ch chan struct{}) {
-	for len(ch) > 0 {
-		<-ch // emptying denial
-	}
-}
-
-func fireNotificationIn(duration time.Duration, deny *chan struct{}, notifying *bool, buzzer *gpiod.Line) {
-	select {
-	case <-*deny:
-		infoLogger.Printf("cancelling notification\n")
-		*notifying = false
-	case <-time.After(duration):
-		infoLogger.Printf("notify\n")
-		buzzer.SetValue(1)
-		*notifying = false
 	}
 }
