@@ -15,14 +15,11 @@ var (
 	errorLogger = log.New(os.Stderr, "[ERROR  ] ", log.LstdFlags)
 )
 
-const (
-	chipName = "gpiochip0"
-)
-
 var (
 	delayBeforeNotification = flag.Duration("notification-delay", 1*time.Minute, "delay between the moment the light is detected and the notification is sent")
 	lightSensorPin          = flag.Int("light-sensor-pin", rpi.GPIO23, "GPIO pin number on which the light sensor is plugged")
 	buzzerPin               = flag.Int("buzzer-pin", rpi.GPIO24, "GPIO pin number on which the buzzer is plugged")
+	chipName                = flag.String("gpio-chip", "gpiochip0", "GPIO chip interface name")
 )
 
 func main() {
