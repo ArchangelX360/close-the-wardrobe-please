@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	delayBeforeNotification = flag.Duration("notification-delay", 5*time.Second, "delay between the moment the light is detected and the notification is sent")
+	delayBeforeNotification = flag.Duration("notification-delay", 1*time.Minute, "delay between the moment the light is detected and the notification is sent")
 	lightSensorPin          = flag.Int("light-sensor-pin", rpi.GPIO23, "GPIO pin number on which the light sensor is plugged")
 	buzzerPin               = flag.Int("buzzer-pin", rpi.GPIO24, "GPIO pin number on which the buzzer is plugged")
 )
