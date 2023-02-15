@@ -1,8 +1,7 @@
 module light-sensor-notifier
 
-go 1.14
+go 1.20
 
-require (
-	github.com/prometheus/client_golang v1.1.0
-	github.com/warthog618/gpiod v0.4.0
-)
+require github.com/warthog618/gpiod v0.8.1
+
+require golang.org/x/sys v0.3.0 // indirect

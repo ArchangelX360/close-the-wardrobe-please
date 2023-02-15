@@ -25,7 +25,7 @@ var (
 func main() {
 	flag.Parse()
 
-	c, err := gpiod.NewChip(chipName)
+	c, err := gpiod.NewChip(*chipName)
 	if err != nil {
 		errorLogger.Fatalf("failed to bind chip %q: %v", chipName, err)
 	}
